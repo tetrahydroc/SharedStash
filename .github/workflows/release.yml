@@ -48,10 +48,19 @@ jobs:
           cd build
           zip -r ../SharedStash.vmz mod.txt SharedStash/
 
-      - name: Create Release
+      - name: Create versioned release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.version.outputs.version }}
           name: Shared Stash v${{ steps.version.outputs.version }}
           files: SharedStash.vmz
           generate_release_notes: true
+
+      - name: Update latest release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: Shared Stash (Latest)
+          files: SharedStash.vmz
+          body: "Latest build - v${{ steps.version.outputs.version }}"
+          make_latest: true
