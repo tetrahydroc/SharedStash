@@ -1,0 +1,99 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" uid="uid://bayspollu1snj" path="res://Scripts/LootContainer.gd" id="1"]
+[ext_resource type="Resource" uid="uid://dog4rlks1my64" path="res://Audio/Containers/Container_Crate_Wood.tres" id="2"]
+[ext_resource type="ArrayMesh" uid="uid://bhceyj5orpalq" path="res://Assets/Crate_Military/Files/MS_Crate_Military.obj" id="3"]
+[ext_resource type="Material" uid="uid://dlvdrgseg24ps" path="res://Assets/Crate_Military/Files/MT_Crate_Military.tres" id="4"]
+[ext_resource type="Script" uid="uid://dn8h8ut7uigli" path="res://Scripts/Surface.gd" id="5"]
+[ext_resource type="Script" uid="uid://c24jrs5viyjjd" path="res://Scripts/Furniture.gd" id="6"]
+[ext_resource type="Resource" path="res://SharedStash/Crate_Shared_F.tres" id="7"]
+[ext_resource type="Texture2D" uid="uid://5cjlpiemxuyq" path="res://UI/Sprites/Icon_Object.png" id="8"]
+[ext_resource type="Material" uid="uid://c013f02y6be6o" path="res://Modular/Materials/MT_Hint.tres" id="9"]
+
+[sub_resource type="ConcavePolygonShape3D" id="ConcavePolygonShape3D_a21tw"]
+data = PackedVector3Array(-0.5, 0.6, 0.3, -0.5, 0, 0.3, -0.5, 0.6, -0.3, -0.5, 0.6, -0.3, -0.5, 0, 0.3, -0.5, 0, -0.3, -0.5, 0.6, -0.3, -0.5, 0, -0.3, 0.5, 0.6, -0.3, 0.5, 0.6, -0.3, -0.5, 0, -0.3, 0.5, 0, -0.3, 0.5, 0.6, -0.3, 0.5, 0, -0.3, 0.5, 0.6, 0.3, 0.5, 0.6, 0.3, 0.5, 0, -0.3, 0.5, 0, 0.3, 0.5, 0.6, 0.3, 0.5, 0, 0.3, -0.5, 0.6, 0.3, -0.5, 0.6, 0.3, 0.5, 0, 0.3, -0.5, 0, 0.3, 0.5, 0.6, 0.3, -0.5, 0.6, 0.3, 0.5, 0.6, -0.3, 0.5, 0.6, -0.3, -0.5, 0.6, 0.3, -0.5, 0.6, -0.3, 0.5, 0, -0.3, -0.5, 0, -0.3, 0.5, 0, 0.3, 0.5, 0, 0.3, -0.5, 0, -0.3, -0.5, 0, 0.3)
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_g8lgm"]
+points = PackedVector3Array(0.474907, 0.275, 0.275, 0.474907, 0.275, -0.275, -0.475, 0.275, 0.275, 0.474907, -0.275, 0.275, 0.474907, -0.275, -0.275, -0.475, 0.275, -0.275, -0.475, -0.275, 0.275, -0.475, -0.275, -0.275)
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_nq7hp"]
+points = PackedVector3Array(0.525, 0.325, 0.325, 0.525, 0.325, -0.325, -0.525, 0.325, 0.325, 0.525, -0.325, 0.325, 0.525, -0.325, -0.325, -0.525, 0.325, -0.325, -0.525, -0.325, 0.325, -0.525, -0.325, -0.325)
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_k7vio"]
+material = ExtResource("9")
+size = Vector2(1, 0.6)
+
+[node name="Crate_Shared_F" type="Node3D"]
+script = ExtResource("1")
+containerName = "Shared Stash"
+containerSize = Vector2(8, 6)
+audioEvent = ExtResource("2")
+furniture = true
+
+[node name="Mesh" type="MeshInstance3D" parent="."]
+mesh = ExtResource("3")
+surface_material_override/0 = ExtResource("4")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Mesh" groups=["Furniture", "Interactable"]]
+script = ExtResource("5")
+surface = "Wood"
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Mesh/StaticBody3D"]
+shape = SubResource("ConcavePolygonShape3D_a21tw")
+
+[node name="Furniture" type="Node3D" parent="." node_paths=PackedStringArray("mesh", "colliderR")]
+script = ExtResource("6")
+itemData = ExtResource("7")
+mesh = NodePath("../Mesh")
+colliderR = NodePath("../Mesh")
+
+[node name="Indicator" type="Sprite3D" parent="Furniture"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, 0)
+modulate = Color(0, 1, 0, 0.25098)
+pixel_size = 0.0005
+billboard = 1
+double_sided = false
+no_depth_test = true
+render_priority = 1
+texture = ExtResource("8")
+
+[node name="Area" type="Area3D" parent="Furniture"]
+collision_mask = 8255
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Furniture/Area"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, 0)
+shape = SubResource("ConvexPolygonShape3D_g8lgm")
+
+[node name="Parenter" type="Area3D" parent="Furniture"]
+collision_layer = 0
+collision_mask = 4
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Furniture/Parenter"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, 0)
+shape = SubResource("ConvexPolygonShape3D_nq7hp")
+
+[node name="Rays" type="Node3D" parent="Furniture"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, 0)
+
+[node name="Ray_01" type="RayCast3D" parent="Furniture/Rays"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.275, 0)
+target_position = Vector3(0, -0.2, 0)
+
+[node name="Ray_02" type="RayCast3D" parent="Furniture/Rays"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.475, -0.275, 0.275)
+target_position = Vector3(0, -0.2, 0)
+
+[node name="Ray_03" type="RayCast3D" parent="Furniture/Rays"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.475, -0.275, 0.275)
+target_position = Vector3(0, -0.2, 0)
+
+[node name="Ray_04" type="RayCast3D" parent="Furniture/Rays"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.475, -0.275, -0.275)
+target_position = Vector3(0, -0.2, 0)
+
+[node name="Ray_05" type="RayCast3D" parent="Furniture/Rays"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.475, -0.275, -0.275)
+target_position = Vector3(0, -0.2, 0)
+
+[node name="Hint" type="MeshInstance3D" parent="Furniture"]
+mesh = SubResource("PlaneMesh_k7vio")
