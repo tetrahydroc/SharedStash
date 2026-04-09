@@ -1,17 +1,13 @@
 extends "res://Scripts/Interface.gd"
 
-const SHARED_STASH_PATH = "user://SharedStashPages.tres"
-const SHARED_CONTAINER_NAME = "Shared Stash"
-var _settings = preload("res://SharedStash/SharedStashSettings.tres")
+const SHARED_STASH_PATH = "user://SharedStashPages.cfg"
+const LEGACY_STASH_PATH = "user://SharedStashPages.tres"
 var _SaveScript = preload("res://SharedStash/SharedStashSave.gd")
-
-# V1 legacy: the custom "Shared Stash" crate uses ContainerSave
-const LEGACY_STASH_PATH = "user://SharedStash.tres"
 
 # Page navigation state
 var _currentPage: int = 0
 var _totalPages: int = 0
-var _stashSave = null  # SharedStashSave resource
+var _stashSave = null
 
 # UI elements
 var _shareButton: Button = null
@@ -74,20 +70,116 @@ func _create_shared_ui():
 	_uiCreated = true
 	print("Shared Stash: Share UI created")
 
-# --- Stash save/load (paged) ---
+# --- Stash save/load ---
 
 func _load_stash():
+	# Try new .cfg format first
 	if FileAccess.file_exists(SHARED_STASH_PATH):
-		var save = load(SHARED_STASH_PATH)
-		if save and save.has_method("get"):
-			# Verify it has our expected properties
-			if "pageNames" in save:
-				return save
+		return _load_stash_cfg()
+
+	# Migrate from legacy .tres if it exists
+	if FileAccess.file_exists(LEGACY_STASH_PATH):
+		var save = load(LEGACY_STASH_PATH)
+		if save and "pageNames" in save:
+			# Save in new format and remove legacy file
+			_save_stash(save)
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(LEGACY_STASH_PATH))
+			print("Shared Stash: Migrated save to .cfg format")
+			return save
+
+	return _SaveScript.new()
+
+func _load_stash_cfg():
+	var cfg = ConfigFile.new()
+	if cfg.load(SHARED_STASH_PATH) != OK:
+		return _SaveScript.new()
+
 	var save = _SaveScript.new()
+	var count = cfg.get_value("stash", "page_count", 0)
+
+	for i in count:
+		var section = "page_" + str(i)
+		save.pageNames.append(cfg.get_value(section, "id", ""))
+		save.pageSizes.append(cfg.get_value(section, "size", Vector2(8, 6)))
+		save.pageLabels.append(cfg.get_value(section, "label", ""))
+
+		var slot_count = cfg.get_value(section, "slot_count", 0)
+		var slots: Array[SlotData] = []
+		for j in slot_count:
+			var key = section + "_slot_" + str(j)
+			var item_file = cfg.get_value(key, "item_file", "")
+			if item_file == "":
+				continue
+			var item_data = _find_item_data(item_file)
+			if !item_data:
+				continue
+			var sd = SlotData.new()
+			sd.itemData = item_data
+			sd.condition = cfg.get_value(key, "condition", 100)
+			sd.amount = cfg.get_value(key, "amount", 0)
+			sd.position = cfg.get_value(key, "position", 0)
+			sd.mode = cfg.get_value(key, "mode", 1)
+			sd.zoom = cfg.get_value(key, "zoom", 1)
+			sd.chamber = cfg.get_value(key, "chamber", false)
+			sd.casing = cfg.get_value(key, "casing", false)
+			sd.state = cfg.get_value(key, "state", "")
+			sd.gridPosition = cfg.get_value(key, "grid_position", Vector2.ZERO)
+			sd.gridRotated = cfg.get_value(key, "grid_rotated", false)
+			var nested_count = cfg.get_value(key, "nested_count", 0)
+			for k in nested_count:
+				var nd = _find_item_data(cfg.get_value(key, "nested_" + str(k), ""))
+				if nd:
+					sd.nested.append(nd)
+			slots.append(sd)
+		save.pageStorage.append(slots)
+
 	return save
 
+func _find_item_data(file_name: String) -> ItemData:
+	if file_name == "":
+		return null
+	var scene = Database.get(file_name)
+	if scene and scene is PackedScene:
+		var path = scene.resource_path.replace(".tscn", ".tres")
+		if ResourceLoader.exists(path):
+			var res = load(path)
+			if res is ItemData:
+				return res
+	return null
+
 func _save_stash(save):
-	ResourceSaver.save(save, SHARED_STASH_PATH)
+	var cfg = ConfigFile.new()
+	cfg.set_value("stash", "page_count", save.pageNames.size())
+
+	for i in save.pageNames.size():
+		var section = "page_" + str(i)
+		cfg.set_value(section, "id", save.pageNames[i])
+		cfg.set_value(section, "size", save.pageSizes[i] if i < save.pageSizes.size() else Vector2(8, 6))
+		cfg.set_value(section, "label", save.pageLabels[i] if i < save.pageLabels.size() else "")
+
+		var slots = save.pageStorage[i] if i < save.pageStorage.size() else []
+		cfg.set_value(section, "slot_count", slots.size())
+		for j in slots.size():
+			var sd = slots[j]
+			if !sd or !sd.itemData:
+				continue
+			var key = section + "_slot_" + str(j)
+			cfg.set_value(key, "item_file", sd.itemData.file)
+			cfg.set_value(key, "condition", sd.condition)
+			cfg.set_value(key, "amount", sd.amount)
+			cfg.set_value(key, "position", sd.position)
+			cfg.set_value(key, "mode", sd.mode)
+			cfg.set_value(key, "zoom", sd.zoom)
+			cfg.set_value(key, "chamber", sd.chamber)
+			cfg.set_value(key, "casing", sd.casing)
+			cfg.set_value(key, "state", sd.state)
+			cfg.set_value(key, "grid_position", sd.gridPosition)
+			cfg.set_value(key, "grid_rotated", sd.gridRotated)
+			cfg.set_value(key, "nested_count", sd.nested.size())
+			for k in sd.nested.size():
+				cfg.set_value(key, "nested_" + str(k), sd.nested[k].file)
+
+	cfg.save(SHARED_STASH_PATH)
 
 func _get_container_id() -> String:
 	if !container:
@@ -96,7 +188,6 @@ func _get_container_id() -> String:
 	return container.containerName + "_" + str(snapped(pos.x, 0.1)) + "_" + str(snapped(pos.y, 0.1)) + "_" + str(snapped(pos.z, 0.1))
 
 func _is_container_paged() -> bool:
-	# Check if this furniture container is in the paged shared system
 	if !container or (!container.furniture and container.containerName != "Office Cabinet"):
 		return false
 	_stashSave = _load_stash()
@@ -107,10 +198,6 @@ func _get_shelter_name() -> String:
 	if map and "mapName" in map:
 		return map.mapName
 	return "Unknown"
-
-func _is_legacy_shared() -> bool:
-	# V1 custom shared crate
-	return container and container.containerName == SHARED_CONTAINER_NAME
 
 # --- Share / Unshare ---
 
@@ -137,16 +224,14 @@ func _on_share_pressed():
 		_navContainer.hide()
 		ClearContainerGrid()
 		containerGrid.CreateContainerGrid(container.containerSize)
-		# Reload local storage
 		if container.storaged:
 			for slotData in container.storage:
 				LoadGridItem(slotData, containerGrid, slotData.gridPosition)
 		print("Shared Stash: Unshared container")
 	else:
-		# Share - grab current grid items into a new page
+		# Share
 		_stashSave.pageNames.append(id)
 		_stashSave.pageSizes.append(container.containerSize)
-		# Store display label with shelter name
 		var shelterName = _get_shelter_name()
 		var label = container.containerName + " [" + shelterName + "]"
 		_stashSave.pageLabels.append(label)
@@ -206,7 +291,6 @@ func _load_page(pageIndex: int):
 	if pageIndex < _stashSave.pageStorage.size():
 		for slotData in _stashSave.pageStorage[pageIndex]:
 			LoadGridItem(slotData, containerGrid, slotData.gridPosition)
-	# Update header with this page's container name + shelter
 	if pageIndex < _stashSave.pageLabels.size():
 		containerName.text = _stashSave.pageLabels[pageIndex]
 	_update_page_label()
@@ -236,19 +320,13 @@ func Open():
 	if !_uiCreated:
 		_create_shared_ui()
 
-	# Show share button for furniture containers in shelters
-	# (but not for the legacy shared crate - that's always shared)
 	if container and (container.furniture or container.containerName == "Office Cabinet") and gameData.shelter:
 		if _shareButton:
-			if _is_legacy_shared():
-				# Legacy crate: no share button needed, always shared
-				_shareButton.hide()
+			_shareButton.show()
+			if _is_container_paged():
+				_shareButton.text = "Unshare"
 			else:
-				_shareButton.show()
-				if _is_container_paged():
-					_shareButton.text = "Unshare"
-				else:
-					_shareButton.text = "Share"
+				_shareButton.text = "Share"
 	else:
 		if _shareButton:
 			_shareButton.hide()
@@ -258,7 +336,6 @@ func Open():
 	super()
 
 func Close():
-	# Save paged container
 	if container and (container.furniture or container.containerName == "Office Cabinet") and _is_container_paged():
 		_save_current_page()
 	if _navContainer:
@@ -268,40 +345,17 @@ func Close():
 	super()
 
 func UpdateContainerGrid():
-	# Legacy shared crate: apply MCM size
-	if _is_legacy_shared():
-		container.containerSize = Vector2(_settings.containerWidth, _settings.containerHeight)
-		super()
-		return
-
-	# Paged shared container: handle our own grid
 	if container and (container.furniture or container.containerName == "Office Cabinet") and _is_container_paged():
 		_show_paged_container()
 		return
-
 	super()
 
 func FillContainerGrid():
-	# Legacy shared crate: reload from legacy save
-	if _is_legacy_shared():
-		container._load_shared_storage()
-		super()
-		return
-
-	# Paged: already filled by _show_paged_container
 	if container and (container.furniture or container.containerName == "Office Cabinet") and _is_container_paged():
 		return
-
 	super()
 
 func StorageContainerGrid():
-	# Legacy shared crate: save to legacy file
-	if _is_legacy_shared():
-		super()
-		return
-
-	# Paged: already saved in Close()
 	if container and (container.furniture or container.containerName == "Office Cabinet") and _is_container_paged():
 		return
-
 	super()

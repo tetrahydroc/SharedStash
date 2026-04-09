@@ -1,15 +1,27 @@
 extends "res://Scripts/Loader.gd"
 
-const SHARED_CONTAINER_NAME = "Shared Stash"
-const PAGED_STASH_PATH = "user://SharedStashPages.tres"
+const PAGED_STASH_PATH = "user://SharedStashPages.cfg"
+const LEGACY_STASH_PATH = "user://SharedStashPages.tres"
 
 func _is_furniture_paged(lootContainer: LootContainer) -> bool:
+	var pos = lootContainer.global_position
+	var id = lootContainer.containerName + "_" + str(snapped(pos.x, 0.1)) + "_" + str(snapped(pos.y, 0.1)) + "_" + str(snapped(pos.z, 0.1))
+
+	# Check .cfg format
 	if FileAccess.file_exists(PAGED_STASH_PATH):
-		var save = load(PAGED_STASH_PATH)
+		var cfg = ConfigFile.new()
+		if cfg.load(PAGED_STASH_PATH) == OK:
+			var count = cfg.get_value("stash", "page_count", 0)
+			for i in count:
+				if cfg.get_value("page_" + str(i), "id", "") == id:
+					return true
+
+	# Check legacy .tres format
+	if FileAccess.file_exists(LEGACY_STASH_PATH):
+		var save = load(LEGACY_STASH_PATH)
 		if save and "pageNames" in save:
-			var pos = lootContainer.global_position
-			var id = lootContainer.containerName + "_" + str(snapped(pos.x, 0.1)) + "_" + str(snapped(pos.y, 0.1)) + "_" + str(snapped(pos.z, 0.1))
 			return save.pageNames.has(id)
+
 	return false
 
 func SaveShelter(targetShelter):
@@ -36,11 +48,8 @@ func SaveShelter(targetShelter):
 			furnitureSave.scale = furniture.owner.scale
 
 			if furniture.owner is LootContainer:
-				# Skip storage for legacy shared crate and paged shared containers
-				if furniture.owner.containerName == SHARED_CONTAINER_NAME:
-					pass  # Legacy crate - storage in SharedStash.tres
-				elif _is_furniture_paged(furniture.owner):
-					pass  # Paged - storage in SharedStashPages.tres
+				if _is_furniture_paged(furniture.owner):
+					pass  # Storage in SharedStashPages.tres
 				elif furniture.owner.storage.size() != 0:
 					furnitureSave.storage = furniture.owner.storage
 

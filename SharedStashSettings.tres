@@ -1,8 +1,0 @@
-[gd_resource type="Resource" script_class="SharedStashSettings" format=3]
-
-[ext_resource type="Script" path="res://SharedStash/SharedStashSettings.gd" id="1"]
-
-[resource]
-script = ExtResource("1")
-containerWidth = 8
-containerHeight = 6
