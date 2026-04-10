@@ -5,3 +5,6 @@ version="1.0.2"
 
 [autoload]
 SharedStashBoot="res://SharedStash/Main.gd"
+
+[updates]
+modworkshop=55931
