@@ -1,13 +1,11 @@
 extends "res://Scripts/Loader.gd"
 
-const PAGED_STASH_PATH = "user://SharedStashPages.cfg"
-const LEGACY_STASH_PATH = "user://SharedStashPages.tres"
+const PAGED_STASH_PATH = "user://SharedStashPages.tres"
 
 func _is_furniture_paged(lootContainer: LootContainer) -> bool:
 	var pos = lootContainer.global_position
 	var id = lootContainer.containerName + "_" + str(snapped(pos.x, 0.1)) + "_" + str(snapped(pos.y, 0.1)) + "_" + str(snapped(pos.z, 0.1))
 
-	# Check .cfg format
 	if FileAccess.file_exists(PAGED_STASH_PATH):
 		var cfg = ConfigFile.new()
 		if cfg.load(PAGED_STASH_PATH) == OK:
@@ -15,12 +13,6 @@ func _is_furniture_paged(lootContainer: LootContainer) -> bool:
 			for i in count:
 				if cfg.get_value("page_" + str(i), "id", "") == id:
 					return true
-
-	# Check legacy .tres format
-	if FileAccess.file_exists(LEGACY_STASH_PATH):
-		var save = load(LEGACY_STASH_PATH)
-		if save and "pageNames" in save:
-			return save.pageNames.has(id)
 
 	return false
 

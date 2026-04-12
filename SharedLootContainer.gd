@@ -1,7 +1,6 @@
 extends "res://Scripts/LootContainer.gd"
 
-const PAGED_STASH_PATH = "user://SharedStashPages.cfg"
-const LEGACY_STASH_PATH = "user://SharedStashPages.tres"
+const PAGED_STASH_PATH = "user://SharedStashPages.tres"
 
 func _is_paged_shared() -> bool:
 	if !furniture and containerName != "Office Cabinet":
@@ -16,11 +15,6 @@ func _is_paged_shared() -> bool:
 			for i in count:
 				if cfg.get_value("page_" + str(i), "id", "") == id:
 					return true
-
-	if FileAccess.file_exists(LEGACY_STASH_PATH):
-		var save = load(LEGACY_STASH_PATH)
-		if save and "pageNames" in save:
-			return save.pageNames.has(id)
 
 	return false
 

@@ -1,7 +1,7 @@
 extends "res://Scripts/Interface.gd"
 
-const SHARED_STASH_PATH = "user://SharedStashPages.cfg"
-const LEGACY_STASH_PATH = "user://SharedStashPages.tres"
+const SHARED_STASH_PATH = "user://SharedStashPages.tres"
+const LEGACY_CFG_PATH = "user://SharedStashPages.cfg"
 var _SaveScript = preload("res://SharedStash/SharedStashSave.gd")
 
 # Page navigation state
@@ -68,30 +68,28 @@ func _create_shared_ui():
 
 	_navContainer.hide()
 	_uiCreated = true
-	print("Shared Stash: Share UI created")
 
 # --- Stash save/load ---
 
 func _load_stash():
-	# Try new .cfg format first
+	# Primary path (ConfigFile saved as .tres)
 	if FileAccess.file_exists(SHARED_STASH_PATH):
-		return _load_stash_cfg()
+		return _load_stash_cfg(SHARED_STASH_PATH)
 
-	# Migrate from legacy .tres if it exists
-	if FileAccess.file_exists(LEGACY_STASH_PATH):
-		var save = load(LEGACY_STASH_PATH)
-		if save and "pageNames" in save:
-			# Save in new format and remove legacy file
+	# Migrate from old .cfg path
+	if FileAccess.file_exists(LEGACY_CFG_PATH):
+		var save = _load_stash_cfg(LEGACY_CFG_PATH)
+		if save.pageNames.size() > 0:
 			_save_stash(save)
-			DirAccess.remove_absolute(ProjectSettings.globalize_path(LEGACY_STASH_PATH))
-			print("Shared Stash: Migrated save to .cfg format")
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(LEGACY_CFG_PATH))
+			print("Shared Stash: Migrated from .cfg to .tres")
 			return save
 
 	return _SaveScript.new()
 
-func _load_stash_cfg():
+func _load_stash_cfg(path: String = SHARED_STASH_PATH):
 	var cfg = ConfigFile.new()
-	if cfg.load(SHARED_STASH_PATH) != OK:
+	if cfg.load(path) != OK:
 		return _SaveScript.new()
 
 	var save = _SaveScript.new()
@@ -227,7 +225,6 @@ func _on_share_pressed():
 		if container.storaged:
 			for slotData in container.storage:
 				LoadGridItem(slotData, containerGrid, slotData.gridPosition)
-		print("Shared Stash: Unshared container")
 	else:
 		# Share
 		_stashSave.pageNames.append(id)
@@ -248,7 +245,6 @@ func _on_share_pressed():
 		_totalPages = _stashSave.pageNames.size()
 		ClearContainerGrid()
 		_show_paged_container()
-		print("Shared Stash: Shared container as page " + str(_currentPage + 1))
 
 	PlayClick()
 
