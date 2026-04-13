@@ -82,7 +82,6 @@ func _load_stash():
 		if save.pageNames.size() > 0:
 			_save_stash(save)
 			DirAccess.remove_absolute(ProjectSettings.globalize_path(LEGACY_CFG_PATH))
-			print("Shared Stash: Migrated from .cfg to .tres")
 			return save
 
 	return _SaveScript.new()
@@ -204,30 +203,47 @@ func _on_share_pressed():
 		return
 
 	_stashSave = _load_stash()
-	var id = _get_container_id()
+	var container_id = _get_container_id()
 
-	if _stashSave.pageNames.has(id):
-		# Unshare
-		var idx = _stashSave.pageNames.find(id)
-		if idx < _stashSave.pageStorage.size():
-			container.storage = _stashSave.pageStorage[idx].duplicate()
-			container.storaged = container.storage.size() > 0
-		_stashSave.pageNames.remove_at(idx)
-		_stashSave.pageSizes.remove_at(idx)
-		_stashSave.pageStorage.remove_at(idx)
-		if idx < _stashSave.pageLabels.size():
-			_stashSave.pageLabels.remove_at(idx)
-		_save_stash(_stashSave)
-		_shareButton.text = "Share"
-		_navContainer.hide()
-		ClearContainerGrid()
-		containerGrid.CreateContainerGrid(container.containerSize)
-		if container.storaged:
-			for slotData in container.storage:
-				LoadGridItem(slotData, containerGrid, slotData.gridPosition)
+	# If currently viewing a shared page, unshare uses the VIEWED page
+	# If not shared, share uses the physical container
+	if _is_container_paged():
+		# Unshare the currently viewed page
+		if _currentPage < _stashSave.pageNames.size():
+			var page_id = _stashSave.pageNames[_currentPage]
+			# Save current page contents first
+			_save_current_page()
+			# If unsharing the container we're physically at, restore items to it
+			if page_id == container_id:
+				if _currentPage < _stashSave.pageStorage.size():
+					container.storage = _stashSave.pageStorage[_currentPage].duplicate()
+					container.storaged = container.storage.size() > 0
+			# Remove the page
+			_stashSave.pageNames.remove_at(_currentPage)
+			_stashSave.pageSizes.remove_at(_currentPage)
+			_stashSave.pageStorage.remove_at(_currentPage)
+			if _currentPage < _stashSave.pageLabels.size():
+				_stashSave.pageLabels.remove_at(_currentPage)
+			_save_stash(_stashSave)
+
+			# Update view
+			_totalPages = _stashSave.pageNames.size()
+			if _totalPages == 0:
+				_shareButton.text = "Share"
+				_navContainer.hide()
+				ClearContainerGrid()
+				containerGrid.CreateContainerGrid(container.containerSize)
+				if container.storaged:
+					for slotData in container.storage:
+						LoadGridItem(slotData, containerGrid, slotData.gridPosition)
+			else:
+				if _currentPage >= _totalPages:
+					_currentPage = _totalPages - 1
+				ClearContainerGrid()
+				_show_paged_container()
 	else:
-		# Share
-		_stashSave.pageNames.append(id)
+		# Share this container
+		_stashSave.pageNames.append(container_id)
 		_stashSave.pageSizes.append(container.containerSize)
 		var shelterName = _get_shelter_name()
 		var label = container.containerName + " [" + shelterName + "]"
@@ -304,6 +320,15 @@ func _show_paged_container():
 	_totalPages = _stashSave.pageNames.size()
 	if _totalPages == 0:
 		return
+
+	# Jump to the page matching the container we just opened
+	if container:
+		var id = _get_container_id()
+		for i in _stashSave.pageNames.size():
+			if _stashSave.pageNames[i] == id:
+				_currentPage = i
+				break
+
 	if _currentPage >= _totalPages:
 		_currentPage = 0
 	if _navContainer:
