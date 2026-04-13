@@ -1,7 +1,7 @@
 [mod]
 name="Shared Stash"
 id="shared-stash"
-version="1.0.4"
+version="1.0.5"
 
 [autoload]
 SharedStashBoot="res://SharedStash/Main.gd"
