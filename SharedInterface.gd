@@ -142,6 +142,11 @@ func _find_item_data(file_name: String) -> ItemData:
 			var res = load(path)
 			if res is ItemData:
 				return res
+	# Fallback: check Cash System for runtime-created items
+	if Engine.has_meta("CashMain"):
+		var cash = Engine.get_meta("CashMain")
+		if cash.cash_item_data and cash.cash_item_data.file == file_name:
+			return cash.cash_item_data
 	return null
 
 func _save_stash(save):
