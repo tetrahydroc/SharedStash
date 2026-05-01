@@ -5,7 +5,7 @@ var gameData = preload("res://Resources/GameData.tres")
 const SHARED_STASH_PATH = "user://SharedStashPages.tres"
 const LEGACY_CFG_PATH = "user://SharedStashPages.cfg"
 
-var _SaveScript = preload("res://SharedStashV3/SharedStashSave.gd")
+var _SaveScript = preload("res://SharedStash/SharedStashSave.gd")
 
 var _currentPage: int = 0
 var _totalPages: int = 0
@@ -32,12 +32,12 @@ func _ready():
 		else:
 			lib.frameworks_ready.connect(_register_hooks)
 	else:
-		push_warning("Shared Stash V3: RTVModLib not found")
-	print("Shared Stash V3: Loaded")
+		push_warning("Shared Stash: RTVModLib not found")
+	print("Shared Stash: Loaded")
 
 func _register_hooks():
 	if !Engine.has_meta("RTVModLib"):
-		print("Shared Stash V3: RTVModLib not found")
+		print("Shared Stash: RTVModLib not found")
 		return
 	_lib = Engine.get_meta("RTVModLib")
 
@@ -48,7 +48,7 @@ func _register_hooks():
 	_lib.hook("interface-fillcontainergrid", _on_fill_container_grid)
 	_lib.hook("interface-storagecontainergrid", _on_storage_container_grid)
 
-	print("Shared Stash V3: Hooks registered")
+	print("Shared Stash: Hooks registered")
 
 func _process(_delta):
 	# Orphan page cleanup: monitor furniture count in shelter
@@ -78,7 +78,7 @@ func _load_stash():
 	if _is_legacy_config_format(SHARED_STASH_PATH):
 		var save = _load_stash_cfg(SHARED_STASH_PATH)
 		_save_stash(save)
-		print("Shared Stash V3: Migrated legacy save format")
+		print("Shared Stash: Migrated legacy save format")
 		return save
 	var save = load(SHARED_STASH_PATH)
 	if save == null:
@@ -215,7 +215,7 @@ func _cleanup_orphaned_pages():
 		i -= 1
 	if removed > 0:
 		_save_stash(_stashSave)
-		print("Shared Stash V3: Cleaned " + str(removed) + " orphaned page(s)")
+		print("Shared Stash: Cleaned " + str(removed) + " orphaned page(s)")
 
 # --- Hook Callbacks ---
 
