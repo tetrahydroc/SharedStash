@@ -6,5 +6,6 @@ version="2.0.0"
 [autoload]
 SharedStashBoot="res://SharedStash/Main.gd"
 
-[rtvmodlib]
-needs="lootcontainer,interface"
+[hooks]
+"res://Scripts/Interface.gd" = "updatecontainergrid, fillcontainergrid, storagecontainergrid, open, close"
+"res://Scripts/LootContainer.gd" = "updatetooltip"
