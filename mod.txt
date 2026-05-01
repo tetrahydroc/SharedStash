@@ -1,10 +1,11 @@
 [mod]
 name="Shared Stash"
 id="shared-stash"
-version="1.0.6"
+version="2.0.0"
 
 [autoload]
 SharedStashBoot="res://SharedStash/Main.gd"
 
-[updates]
-modworkshop=55931
+[hooks]
+"res://Scripts/Interface.gd" = "updatecontainergrid, fillcontainergrid, storagecontainergrid, open, close"
+"res://Scripts/LootContainer.gd" = "updatetooltip"
