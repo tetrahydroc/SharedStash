@@ -9,3 +9,6 @@ SharedStashBoot="res://SharedStash/Main.gd"
 [hooks]
 "res://Scripts/Interface.gd" = "updatecontainergrid, fillcontainergrid, storagecontainergrid, open, close"
 "res://Scripts/LootContainer.gd" = "updatetooltip"
+
+[updates]
+modworkshop=55931

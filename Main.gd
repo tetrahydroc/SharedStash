@@ -16,7 +16,6 @@ var _prevButton: Button = null
 var _nextButton: Button = null
 var _pageLabel: Label = null
 var _navContainer: HBoxContainer = null
-var _uiCreated = false
 
 var _interface = null
 var _lib = null
@@ -232,7 +231,10 @@ func _on_interface_open():
 	if !iface:
 		return
 
-	if !_uiCreated:
+	# Refs to the buttons get freed when the previous shelter scene unloads,
+	# so check validity rather than relying on a sticky "created once" flag.
+	# Re-creating walks the same path as the first-time build.
+	if _shareButton == null or not is_instance_valid(_shareButton):
 		_create_shared_ui(iface)
 
 	if iface.container and (iface.container.furniture or iface.container.containerName == "Office Cabinet") and gameData.shelter:
@@ -282,9 +284,6 @@ func _on_storage_container_grid():
 # --- UI Creation ---
 
 func _create_shared_ui(iface):
-	if _uiCreated:
-		return
-
 	var header = iface.containerUI.get_node_or_null("Header")
 	if !header:
 		return
@@ -328,7 +327,6 @@ func _create_shared_ui(iface):
 	_navContainer.add_child(_nextButton)
 
 	_navContainer.hide()
-	_uiCreated = true
 
 # --- Share / Unshare ---
 
